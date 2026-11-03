@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2E4A6B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Tally">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<title>Tally</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Karla:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --deep: #2E4A6B;
+    --ink: #1E2A3A;
+    --ink-soft: #1E2A3A99;
+    --paper: #EEF1F5;
+    --card: #ffffff;
+    --pale: #F2F5F8;
+    --amber: #F2A541;
+    --blue: #2F5BFF;
+    --head: "Outfit", system-ui, sans-serif;
+    --body: "Karla", system-ui, -apple-system, sans-serif;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; margin: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: var(--deep); color: var(--ink); font-family: var(--body); font-size: 17px; }
+  body { overflow: hidden; }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+
+  #pager { display: flex; height: 100dvh; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+  #pager::-webkit-scrollbar { display: none; }
+  section { flex: 0 0 100%; width: 100%; height: 100dvh; scroll-snap-align: start; scroll-snap-stop: always; overflow-y: auto; padding: max(26px, env(safe-area-inset-top)) 22px 120px; }
+  .inner { max-width: 500px; margin: 0 auto; }
+  #p-home { background: var(--deep); color: var(--pale); }
+  #p-history, #p-stats { background: var(--paper); }
+
+  h2 { font-family: var(--head); font-weight: 700; font-size: 1.9rem; letter-spacing: -0.01em; }
+  .sub { color: var(--ink-soft); margin-top: 4px; }
+
+  /* Home */
+  .home-date { opacity: .75; }
+  .count { font-family: var(--head); font-weight: 700; font-size: 10rem; line-height: .95; margin-top: 18px; letter-spacing: -0.04em; }
+  .count-l { opacity: .75; margin-top: 2px; }
+  #ago { margin-top: 18px; font-size: 1.1rem; }
+  .logbtn { display: block; margin: 30px auto 0; width: 168px; height: 168px; border-radius: 50%; background: var(--amber); color: var(--ink); font-family: var(--head); font-weight: 700; font-size: 1.6rem; box-shadow: 0 0 0 10px #F2A54133; transition: transform .1s; }
+  .logbtn:active { transform: scale(.94); }
+  .times { margin-top: 34px; display: grid; gap: 6px; }
+  .time-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 6px 6px 16px; border-radius: 12px; background: #ffffff1c; }
+  .x { width: 40px; height: 40px; border-radius: 50%; font-size: 1.3rem; opacity: .8; }
+  .linkbtn { margin-top: 14px; text-decoration: underline; font-weight: 700; }
+
+  /* History */
+  .mhead { display: flex; align-items: center; justify-content: space-between; margin-top: 18px; }
+  .mhead button { width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--ink); font-size: 1.3rem; line-height: 1; }
+  .mhead span { font-family: var(--head); font-weight: 600; font-size: 1.35rem; }
+  .dow, .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+  .dow { margin-top: 16px; text-align: center; font-size: .8rem; color: var(--ink-soft); font-weight: 700; }
+  .grid { margin-top: 6px; }
+  .cell { aspect-ratio: 1; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--card); font-weight: 500; }
+  .cell.blank { background: none; pointer-events: none; }
+  .cell.has { background: var(--deep); color: #fff; }
+  .cell small { font-size: .7rem; opacity: .85; }
+  .cell.now { outline: 3px solid var(--amber); outline-offset: 1px; }
+  .cell.sel { outline: 3px solid var(--blue); outline-offset: 1px; }
+  .day { margin-top: 22px; background: var(--card); border-radius: 18px; padding: 18px; }
+  .day h3 { font-family: var(--head); font-size: 1.25rem; }
+  .day .time-row { background: var(--paper); margin-top: 8px; }
+  .day .x { color: var(--ink); }
+  .none { margin-top: 10px; color: var(--ink-soft); }
+  .addat { display: flex; gap: 8px; margin-top: 16px; }
+  .addat input { flex: 1; min-width: 0; font: inherit; padding: 12px; border-radius: 12px; border: 2px solid var(--ink); background: #fff; color: var(--ink); }
+  .btn { background: var(--deep); color: #fff; font-weight: 700; padding: 12px 18px; border-radius: 12px; }
+  .btn.ghost { background: transparent; color: var(--ink); border: 2px solid var(--ink); padding: 10px 16px; }
+  .btn.danger { border-color: #B3261E; color: #B3261E; }
+
+  /* Stats */
+  .seg { display: flex; gap: 8px; margin-top: 16px; }
+  .seg button { padding: 10px 16px; border-radius: 99px; border: 2px solid var(--ink); font-weight: 700; }
+  .seg button.on { background: var(--ink); color: #fff; }
+  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+  .tile { background: var(--card); border-radius: 16px; padding: 14px 16px; }
+  .tile b { display: block; font-family: var(--head); font-size: 1.9rem; line-height: 1.1; }
+  .tile span { color: var(--ink-soft); font-size: .92rem; }
+  .chart { margin-top: 26px; }
+  .chart h3 { font-family: var(--head); font-size: 1.15rem; }
+  .bars { display: flex; align-items: flex-end; gap: 3px; height: 110px; margin-top: 12px; padding-bottom: 20px; }
+  .b { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; position: relative; }
+  .b i { display: block; width: 100%; background: var(--deep); border-radius: 4px 4px 0 0; min-height: 2px; opacity: .9; }
+  .b i.z { background: #1E2A3A22; }
+  .b em { position: absolute; bottom: -20px; font-style: normal; font-size: .72rem; color: var(--ink-soft); white-space: nowrap; }
+  .settings { margin-top: 40px; padding-top: 20px; border-top: 2px solid var(--ink); }
+  .settings p { color: var(--ink-soft); font-size: .92rem; margin: 6px 0 14px; }
+  .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  nav { position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; gap: 4px; padding: 8px 12px max(10px, env(safe-area-inset-bottom)); background: var(--ink); z-index: 5; }
+  nav button { flex: 1; max-width: 140px; padding: 11px 0; border-radius: 12px; color: #ffffffaa; font-weight: 700; }
+  nav button.on { background: #ffffff1f; color: #fff; }
+
+  .toast { position: fixed; left: 50%; top: 14px; transform: translate(-50%, -90px); background: var(--ink); color: #fff; padding: 8px 8px 8px 16px; border-radius: 14px; z-index: 30; transition: transform .25s; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 18px #0004; }
+  .toast.show { transform: translate(-50%, 0); }
+  .toast button { color: var(--amber); font-weight: 700; padding: 8px 10px; }
+
+  /* Lock */
+  #lock { position: fixed; inset: 0; z-index: 20; background: var(--deep); color: var(--pale); display: none; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+  #lock.show { display: flex; }
+  body.locked #pager, body.locked nav { visibility: hidden; }
+  #lock h2 { font-size: 1.5rem; }
+  #lmsg { margin-top: 8px; min-height: 1.4em; opacity: .85; }
+  .dots { display: flex; gap: 16px; margin: 26px 0 30px; }
+  .dots i { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--pale); }
+  .dots i.f { background: var(--pale); }
+  .dots.shake { animation: shake .35s; }
+  @keyframes shake { 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+  .pad { display: grid; grid-template-columns: repeat(3, 76px); gap: 14px; }
+  .pad button { height: 76px; border-radius: 50%; background: #ffffff1c; font-family: var(--head); font-size: 1.7rem; font-weight: 600; }
+  .pad button:active { background: #ffffff40; }
+  .pad .ghostk { background: none; font-size: 1.3rem; }
+  #lextra { margin-top: 26px; display: flex; gap: 22px; }
+  #lextra button { text-decoration: underline; opacity: .85; font-weight: 700; }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
+</style>
+</head>
+<body class="locked">
+
+<div id="pager">
+  <section id="p-home"><div class="inner" id="home"></div></section>
+  <section id="p-history"><div class="inner" id="history"></div></section>
+  <section id="p-stats"><div class="inner" id="stats"></div></section>
+</div>
+
+<nav id="tabs" aria-label="Pages">
+  <button data-i="0">Home</button>
+  <button data-i="1">History</button>
+  <button data-i="2">Stats</button>
+</nav>
+
+<div id="lock" role="dialog" aria-modal="true" aria-label="PIN">
+  <h2 id="ltitle">Enter PIN</h2>
+  <p id="lmsg"></p>
+  <div class="dots" id="ldots"><i></i><i></i><i></i><i></i></div>
+  <div class="pad" id="lpad"></div>
+  <div id="lextra"></div>
+</div>
+
+<div class="toast" id="toast" role="status"><span id="tmsg"></span><button id="tundo" hidden>Undo</button></div>
+<input type="file" id="importFile" accept="application/json" hidden>
+
+<script>
+const KEY = "tally-v1", PKEY = "tally-pin-v1";
+const $ = id => document.getElementById(id);
+const pager = $("pager");
+const pad2 = n => String(n).padStart(2, "0");
+const ymd = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const parse = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+const dayKey = ts => ymd(new Date(ts));
+const todayKey = () => ymd(new Date());
+const fmtTime = ts => new Date(ts).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+
+let entries = [];
+try { entries = (JSON.parse(localStorage.getItem(KEY)) || []).filter(Number.isFinite); } catch (e) {}
+entries.sort((a, b) => a - b);
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(entries)); } catch (e) { toast("Couldn't save. Is private browsing on?"); } };
+
+let sel = todayKey(), viewMonth = new Date(), range = 30;
+viewMonth.setDate(1);
+
+/* ---------- toast ---------- */
+let undoFn = null;
+function toast(msg, undo) {
+  $("tmsg").textContent = msg; undoFn = undo || null; $("tundo").hidden = !undo;
+  $("toast").classList.add("show");
+  clearTimeout(toast.t); toast.t = setTimeout(() => $("toast").classList.remove("show"), undo ? 5000 : 2200);
+}
+$("tundo").onclick = () => { if (undoFn) undoFn(); undoFn = null; $("toast").classList.remove("show"); };
+
+/* ---------- data ops ---------- */
+function addTs(ts, silent) {
+  entries.push(ts); entries.sort((a, b) => a - b); save(); renderAll();
+  if (!silent) toast("Logged", () => removeTs(ts, true));
+}
+function removeTs(ts, silent) {
+  const i = entries.indexOf(ts); if (i < 0) return;
+  entries.splice(i, 1); save(); renderAll();
+  if (!silent) toast("Removed", () => addTs(ts, true));
+}
+
+/* ---------- formatting ---------- */
+function fmtAgo(ms) {
+  const m = Math.floor(ms / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ${m % 60}m ago`;
+  return `${Math.floor(h / 24)}d ${h % 24}h ago`;
+}
+function fmtDur(ms) {
+  const h = Math.round(ms / 3600000);
+  if (h < 1) return `${Math.round(ms / 60000)}m`;
+  if (h < 48) return `${h}h`;
+  const d = Math.floor(h / 24);
+  return `${d}d ${h % 24}h`;
+}
+
+/* ---------- Home ---------- */
+function renderHome() {
+  const t = todayKey(), todays = entries.filter(ts => dayKey(ts) === t);
+  const last = entries[entries.length - 1];
+  const dateLine = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+  let h = `<p class="home-date">${dateLine}</p>
+    <div class="count" aria-label="${todays.length} today">${todays.length}</div>
+    <p class="count-l">today</p>
+    <p id="ago">${last ? "Last: " + fmtAgo(Date.now() - last) : "Nothing logged yet"}</p>
+    <button class="logbtn" id="logNow">Log now</button>`;
+  if (todays.length) {
+    h += `<div class="times">` + [...todays].reverse().map(ts =>
+      `<div class="time-row"><span>${fmtTime(ts)}</span><button class="x" data-rm="${ts}" aria-label="Remove ${fmtTime(ts)}">×</button></div>`).join("") + `</div>`;
+  }
+  h += `<button class="linkbtn" data-earlier="1">Add an earlier time</button>`;
+  $("home").innerHTML = h;
+}
+setInterval(() => {
+  const el = $("ago"), last = entries[entries.length - 1];
+  if (el && last) el.textContent = "Last: " + fmtAgo(Date.now() - last);
+}, 30000);
+
+/* ---------- History ---------- */
+function renderHistory() {
+  const y = viewMonth.getFullYear(), m = viewMonth.getMonth();
+  const first = new Date(y, m, 1), days = new Date(y, m + 1, 0).getDate();
+  const counts = {};
+  entries.forEach(ts => { const k = dayKey(ts); counts[k] = (counts[k] || 0) + 1; });
+  let h = `<h2>History</h2><p class="sub">Tap a day to see or edit it.</p>
+    <div class="mhead"><button data-month="-1" aria-label="Previous month">‹</button>
+    <span>${first.toLocaleDateString(undefined, { month: "long", year: "numeric" })}</span>
+    <button data-month="1" aria-label="Next month">›</button></div>
+    <div class="dow">${["S", "M", "T", "W", "T", "F", "S"].map(x => `<span>${x}</span>`).join("")}</div><div class="grid">`;
+  for (let i = 0; i < first.getDay(); i++) h += `<div class="cell blank"></div>`;
+  for (let d = 1; d <= days; d++) {
+    const s = `${y}-${pad2(m + 1)}-${pad2(d)}`, n = counts[s] || 0;
+    h += `<button class="cell ${n ? "has" : ""} ${s === todayKey() ? "now" : ""} ${s === sel ? "sel" : ""}" data-day="${s}"><span>${d}</span>${n ? `<small>×${n}</small>` : ""}</button>`;
+  }
+  h += `</div>`;
+  const dayEntries = entries.filter(ts => dayKey(ts) === sel);
+  const sd = parse(sel);
+  h += `<div class="day"><h3>${sd.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}</h3>` +
+    (dayEntries.length
+      ? dayEntries.map(ts => `<div class="time-row"><span>${fmtTime(ts)}</span><button class="x" data-rm="${ts}" aria-label="Remove ${fmtTime(ts)}">×</button></div>`).join("")
+      : `<p class="none">Nothing logged this day.</p>`) +
+    `<div class="addat"><input type="time" id="tin" value="${sel === todayKey() ? pad2(new Date().getHours()) + ":" + pad2(new Date().getMinutes()) : "12:00"}" aria-label="Time"><button class="btn" id="addAt">Add time</button></div></div>`;
+  const keep = document.activeElement && document.activeElement.id === "tin" ? $("tin").value : null;
+  $("history").innerHTML = h;
+  if (keep) $("tin").value = keep;
+}
+
+/* ---------- Stats ---------- */
+function bars(vals, labels) {
+  const max = Math.max(...vals, 1);
+  return `<div class="bars">` + vals.map((v, i) =>
+    `<div class="b"><i class="${v ? "" : "z"}" style="height:${v ? Math.max(6, v / max * 100) : 0}%"></i><em>${labels[i] || ""}</em></div>`).join("") + `</div>`;
+}
+function renderStats() {
+  const start = new Date(); start.setHours(0, 0, 0, 0);
+  if (range) start.setDate(start.getDate() - range + 1);
+  const inR = range ? entries.filter(ts => ts >= start.getTime()) : entries;
+  let daySpan = range;
+  if (!range) {
+    daySpan = entries.length ? Math.round((parse(todayKey()) - parse(dayKey(entries[0]))) / 86400000) + 1 : 1;
+  }
+  const total = inR.length;
+  const gaps = []; for (let i = 1; i < inR.length; i++) gaps.push(inR[i] - inR[i - 1]);
+  const avgGap = gaps.length ? gaps.reduce((a, b) => a + b, 0) / gaps.length : null;
+  const maxGap = gaps.length ? Math.max(...gaps) : null;
+  const label = range ? `Last ${range} days` : "All time";
+
+  let h = `<h2>Stats</h2><p class="sub">${label}</p>
+    <div class="seg">${[[7, "7 days"], [30, "30 days"], [0, "All time"]].map(([r, l]) => `<button class="${range === r ? "on" : ""}" data-range="${r}">${l}</button>`).join("")}</div>
+    <div class="tiles">
+      <div class="tile"><b>${total}</b><span>Total</span></div>
+      <div class="tile"><b>${(total / daySpan).toFixed(1)}</b><span>Per day</span></div>
+      <div class="tile"><b>${avgGap ? fmtDur(avgGap) : "–"}</b><span>Average gap</span></div>
+      <div class="tile"><b>${maxGap ? fmtDur(maxGap) : "–"}</b><span>Longest gap</span></div>
+    </div>`;
+
+  const dv = [], dl = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const k = ymd(d); dv.push(entries.filter(ts => dayKey(ts) === k).length);
+    dl.push(i % 2 === 0 ? ["S", "M", "T", "W", "T", "F", "S"][d.getDay()] : "");
+  }
+  h += `<div class="chart"><h3>Last 14 days</h3>${bars(dv, dl)}</div>`;
+
+  const hv = Array(24).fill(0); inR.forEach(ts => hv[new Date(ts).getHours()]++);
+  h += `<div class="chart"><h3>Time of day</h3>${bars(hv, hv.map((_, i) => [0, 6, 12, 18].includes(i) ? ["12a", "6a", "12p", "6p"][i / 6] : ""))}</div>`;
+  const wv = Array(7).fill(0); inR.forEach(ts => wv[new Date(ts).getDay()]++);
+  h += `<div class="chart"><h3>Day of week</h3>${bars(wv, ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"])}</div>`;
+
+  h += `<div class="settings"><b>Settings</b><p>Entries are stored only in this browser. The PIN keeps casual snoopers out but doesn't encrypt your data, so keep your phone's own passcode on too.</p>
+    <div class="btns"><button class="btn ghost" id="chgPin">Change PIN</button><button class="btn ghost" id="exp">Export backup</button><button class="btn ghost" id="imp">Import backup</button><button class="btn ghost danger" id="erase">Erase everything</button></div></div>`;
+  $("stats").innerHTML = h;
+}
+
+function renderAll() { renderHome(); renderHistory(); renderStats(); }
+
+/* ---------- navigation ---------- */
+function go(i) { pager.scrollTo({ left: i * pager.clientWidth, behavior: "smooth" }); }
+const themes = ["#2E4A6B", "#EEF1F5", "#EEF1F5"];
+function syncTab() {
+  const i = Math.round(pager.scrollLeft / pager.clientWidth);
+  document.querySelectorAll("#tabs button").forEach((b, k) => b.classList.toggle("on", k === i));
+  document.querySelector('meta[name="theme-color"]').content = document.body.classList.contains("locked") ? "#2E4A6B" : themes[i];
+}
+pager.addEventListener("scroll", () => requestAnimationFrame(syncTab), { passive: true });
+
+/* ---------- events ---------- */
+document.addEventListener("click", e => {
+  const t = e.target;
+  if (t.closest("#logNow")) { addTs(Date.now()); return; }
+  const rm = t.closest("[data-rm]"); if (rm) { removeTs(+rm.dataset.rm); return; }
+  const tab = t.closest("#tabs button"); if (tab) { go(+tab.dataset.i); return; }
+  if (t.closest("[data-earlier]")) { sel = todayKey(); viewMonth = new Date(); viewMonth.setDate(1); renderHistory(); go(1); return; }
+  const mo = t.closest("[data-month]"); if (mo) { viewMonth.setMonth(viewMonth.getMonth() + +mo.dataset.month); renderHistory(); return; }
+  const dy = t.closest("[data-day]"); if (dy) { sel = dy.dataset.day; renderHistory(); return; }
+  const rg = t.closest("[data-range]"); if (rg) { range = +rg.dataset.range; renderStats(); return; }
+  if (t.closest("#addAt")) {
+    const v = $("tin").value; if (!v) { toast("Pick a time first"); return; }
+    const [hh, mm] = v.split(":").map(Number), d = parse(sel); d.setHours(hh, mm, 0, 0);
+    if (d.getTime() > Date.now()) { toast("That time hasn't happened yet"); return; }
+    addTs(d.getTime()); return;
+  }
+  if (t.closest("#exp")) {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(entries)], { type: "application/json" }));
+    a.download = `tally-backup-${todayKey()}.json`; a.click(); URL.revokeObjectURL(a.href); return;
+  }
+  if (t.closest("#imp")) { $("importFile").click(); return; }
+  if (t.closest("#chgPin")) { openLock("verify", true); return; }
+  if (t.closest("#erase")) {
+    if (confirm("Erase every entry? This can't be undone.")) { entries = []; save(); renderAll(); toast("Everything erased"); }
+  }
+});
+$("importFile").addEventListener("change", e => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const arr = JSON.parse(r.result);
+      if (!Array.isArray(arr) || !arr.every(Number.isFinite)) throw 0;
+      if (!confirm(`Replace your current entries with ${arr.length} from this backup?`)) return;
+      entries = arr.sort((a, b) => a - b); save(); renderAll(); toast("Backup imported");
+    } catch (_) { toast("That file isn't a valid backup"); }
+  };
+  r.readAsText(f); e.target.value = "";
+});
+
+/* ---------- PIN lock ---------- */
+let lmode = "enter", lbuf = "", ltemp = "", lcancel = false, lbusy = false;
+const hasPin = () => !!localStorage.getItem(PKEY);
+
+async function hashPin(pin, salt) {
+  const s = salt + ":" + pin;
+  if (window.crypto && crypto.subtle) {
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+    return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+  }
+  let x = 5381; for (let i = 0; i < 5000; i++) for (const c of s) x = ((x << 5) + x + c.charCodeAt(0)) | 0;
+  return String(x);
+}
+async function checkPin(pin) {
+  const p = JSON.parse(localStorage.getItem(PKEY)); return (await hashPin(pin, p.salt)) === p.hash;
+}
+async function storePin(pin) {
+  const salt = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  localStorage.setItem(PKEY, JSON.stringify({ salt, hash: await hashPin(pin, salt) }));
+}
+
+const LTEXT = {
+  enter: ["Enter PIN", ""],
+  verify: ["Change PIN", "Enter your current PIN"],
+  setup1: ["Choose a PIN", "Pick 4 digits"],
+  setup2: ["Confirm PIN", "Enter it once more"]
+};
+function drawLock(msg) {
+  $("ltitle").textContent = LTEXT[lmode][0];
+  $("lmsg").textContent = msg !== undefined ? msg : LTEXT[lmode][1];
+  [...$("ldots").children].forEach((d, i) => d.classList.toggle("f", i < lbuf.length));
+  let x = "";
+  if (lcancel) x += `<button id="lcancel">Cancel</button>`;
+  if (lmode === "enter") x += `<button id="lforgot">Forgot PIN?</button>`;
+  $("lextra").innerHTML = x;
+}
+function openLock(mode, cancelable) {
+  lmode = mode; lbuf = ""; ltemp = ""; lcancel = !!cancelable;
+  document.body.classList.add("locked"); $("lock").classList.add("show");
+  syncTab(); drawLock();
+}
+function closeLock() {
+  lbuf = ""; $("lock").classList.remove("show"); document.body.classList.remove("locked"); syncTab();
+}
+function wrong(msg) {
+  $("ldots").classList.remove("shake"); void $("ldots").offsetWidth; $("ldots").classList.add("shake");
+  lbuf = ""; drawLock(msg);
+}
+async function submitPin() {
+  if (lbusy) return; lbusy = true;
+  const pin = lbuf;
+  try {
+    if (lmode === "enter") { if (await checkPin(pin)) closeLock(); else wrong("Wrong PIN"); }
+    else if (lmode === "verify") { if (await checkPin(pin)) { lmode = "setup1"; lbuf = ""; drawLock(); } else wrong("Wrong PIN"); }
+    else if (lmode === "setup1") { ltemp = pin; lmode = "setup2"; lbuf = ""; drawLock(); }
+    else if (lmode === "setup2") {
+      if (pin === ltemp) { await storePin(pin); closeLock(); toast("PIN saved"); }
+      else { lmode = "setup1"; ltemp = ""; wrong("PINs didn't match. Try again."); }
+    }
+  } finally { lbusy = false; }
+}
+function pressKey(k) {
+  if (lbusy) return;
+  if (k === "del") lbuf = lbuf.slice(0, -1);
+  else if (lbuf.length < 4) lbuf += k;
+  drawLock(lmode === "enter" || lbuf.length ? "" : undefined);
+  if (lbuf.length === 4) setTimeout(submitPin, 120);
+}
+$("lpad").innerHTML = [1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button data-k="${n}">${n}</button>`).join("") +
+  `<span></span><button data-k="0">0</button><button class="ghostk" data-k="del" aria-label="Delete">⌫</button>`;
+$("lpad").addEventListener("click", e => { const b = e.target.closest("[data-k]"); if (b) pressKey(b.dataset.k); });
+$("lextra").addEventListener("click", e => {
+  if (e.target.id === "lcancel") closeLock();
+  if (e.target.id === "lforgot" && confirm("Forgot PIN? This erases all entries so you can set a new PIN.")) {
+    localStorage.removeItem(KEY); localStorage.removeItem(PKEY); entries = []; renderAll(); openLock("setup1", false);
+  }
+});
+document.addEventListener("keydown", e => {
+  if (!$("lock").classList.contains("show")) {
+    if (e.target.tagName === "INPUT") return;
+    const i = Math.round(pager.scrollLeft / pager.clientWidth);
+    if (e.key === "ArrowRight" && i < 2) go(i + 1);
+    if (e.key === "ArrowLeft" && i > 0) go(i - 1);
+    return;
+  }
+  if (/^\d$/.test(e.key)) pressKey(e.key); else if (e.key === "Backspace") pressKey("del");
+});
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && hasPin() && !(lmode.startsWith("setup") && $("lock").classList.contains("show"))) openLock("enter", false);
+});
+
+renderAll(); syncTab();
+openLock(hasPin() ? "enter" : "setup1", false);
+</script>
+</body>
+</html>
